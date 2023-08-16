@@ -1,42 +1,10 @@
-const express = require('express');
+const express = require('express')
+const app = express()
 const fs = require('fs');
 const axios = require('axios');
 const cheerio = require('cheerio');
-
-const app = express();
+const URL = 'https://www.footarchives.com/';
 const PORT = process.env.PORT || 5000;
-
-const URL = 'https://www.footarchives.com/'; // replace with the URL of the website you want to scrape
-
-app.get('/update-json', async (req, res) => {
-  try {
-    const array = await scrape();
-    fs.writeFile('football.json', JSON.stringify(array), 'utf8', (err) => {
-      if (err) {
-        console.log('error in write');
-        res.status(500).json({ message: 'Internal server error' });
-      } else {
-        console.log('done');
-        res.json({ message: 'JSON file updated successfully' });
-      }
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.get('/get-data', (req, res) => {
-  fs.readFile('football.json', 'utf8', (err, data) => {
-    if (err) {
-      console.log('error in read');
-      res.status(500).json({ message: 'Internal server error' });
-    } else {
-      const jsonData = JSON.parse(data);
-      res.json(jsonData);
-    }
-  });
-});
 
 async function fetchMatchSource(match) {
   let response = await axios.get(match['link']);
@@ -51,7 +19,6 @@ async function fetchMatchSource(match) {
   console.log(src);
   return src;
 }
-
 async function scrape() {
   try {
     let response = await axios.get(URL);
@@ -78,6 +45,7 @@ async function scrape() {
       array.push(updatedMatch);
     }
     console.log(array);
+    arr = array
     return array;
   } catch (error) {
     console.log(error);
@@ -85,6 +53,41 @@ async function scrape() {
   }
 }
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+async function run() {
+  try {
+    const array = await scrape();
+    fs.writeFile('football.json', JSON.stringify(array), 'utf8', (err) => {
+      if (err) {
+        console.log('error in write');
+      } else {
+        console.log('done');
+      }
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+
+app.get('/run-update-data', async (req, res)=> {
+  run()
+  res.json({message: 'run is inprogress'})
+})
+
+app.get('/api/matches', (req, res) => {
+  fs.readFile('football.json', 'utf8', (err, data) => {
+    if (err) {
+      console.log('error in read');
+      res.status(500).json({ message: 'Internal server error' });
+    } else {
+      const jsonData = JSON.parse(data);
+      res.json(jsonData);
+    }
+  });
 });
+
+app.listen(PORT, ()=> {
+  console.log(`run on ${PORT}`)
+})
+
+
