@@ -1,10 +1,24 @@
+
 const express = require('express')
 const app = express()
 const fs = require('fs');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const mysql = require('mysql');
 const URL = 'https://www.footarchives.com/';
 const PORT = process.env.PORT || 5000;
+
+
+app.use(express.json());
+
+// Database connection configuration
+const dbConn = mysql.createConnection({
+  host: '92.205.4.117',
+  user: 'f_api',
+  password: 'PASSword.f.1',
+  database: 'f_api'
+});
+
 
 async function fetchMatchSource(match) {
   let response = await axios.get(match['link']);
@@ -67,26 +81,46 @@ async function run() {
     console.log(error);
   }
 }
+async function update() {
+  try {
+    const array = await scrape();
+    dbConn.connect(function (err) {
+      if (err) throw err;
+      console.log("Connected!");
+      const updatedJsonString = JSON.stringify(array)
+      const idToUpdate = 2
+      const sql = 'UPDATE json_data SET data = ? WHERE id = ?';
+      dbConn.query(sql, [updatedJsonString, idToUpdate], function (err, result) {
+        if (err) throw err;
+        console.log("Result: " + result);
+        res.json({ data: result })
+      });
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 
-app.get('/run-update-data', async (req, res)=> {
-  run()
-  res.json({message: 'run is inprogress'})
+app.get('/api/update', async (req, res) => {
+  await update()
+  res.json({ message: 'run is inprogress' })
 })
 
 app.get('/api/matches', (req, res) => {
-  fs.readFile('football.json', 'utf8', (err, data) => {
-    if (err) {
-      console.log('error in read');
-      res.status(500).json({ message: 'Internal server error' });
-    } else {
-      const jsonData = JSON.parse(data);
-      res.json(jsonData);
-    }
+  dbConn.connect(function (err) {
+    if (err) throw err;
+    console.log("Connected!");
+    sql = 'SELECT * FROM json_data WHERE id = 2'
+    dbConn.query(sql, function (err, result) {
+      if (err) throw err;
+      console.log("Result: " + result);
+      res.json({ data: result })
+    });
   });
 });
 
-app.listen(PORT, ()=> {
+app.listen(PORT, () => {
   console.log(`run on ${PORT}`)
 })
 
