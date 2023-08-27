@@ -103,7 +103,7 @@ async function update() {
 
 
 app.get('/api/update', async (req, res) => {
-  await update()
+  update()
   res.json({ message: 'run is inprogress' })
 })
 
